@@ -1470,10 +1470,6 @@ namespace Microsoft.MixedReality.WebRTC
                 Utils.ThrowOnErrorCode(res);
 
                 DataChannelRemoved?.Invoke(dataChannel);
-
-                // PeerConnection is owning the data channel, and all internal states have been
-                // updated and events triggered, so notify the data channel to clean its internal state.
-                dataChannel.DestroyNative();
             }
             else
             {
@@ -2146,8 +2142,10 @@ namespace Microsoft.MixedReality.WebRTC
         internal void OnDataChannelRemoved(DataChannel dataChannel)
         {
             MainEventSource.Log.DataChannelRemoved(dataChannel.ID, dataChannel.Label);
-            DataChannels.Remove(dataChannel);
-            DataChannelRemoved?.Invoke(dataChannel);
+            if (DataChannels.Remove(dataChannel))
+            {
+                DataChannelRemoved?.Invoke(dataChannel);
+            }
         }
 
         private static string ForceSdpCodecs(string sdp, string audio, string audioParams, string video, string videoParams)

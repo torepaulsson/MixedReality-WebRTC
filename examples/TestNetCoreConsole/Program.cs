@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.MixedReality.WebRTC;
 
@@ -43,8 +45,12 @@ namespace TestNetCoreConsole
                             new IceServer{ Urls = { "stun:stun.l.google.com:19302" } }
                         }
                 };
+
                 await pc.InitializeAsync(config);
                 Console.WriteLine("Peer connection initialized.");
+
+                await pc.AddDataChannelAsync("the_data_channel", true, true, CancellationToken.None);
+                Console.WriteLine("Added data channel.");
 
                 // Record video from local webcam, and send to remote peer
                 if (needVideo)
@@ -94,7 +100,6 @@ namespace TestNetCoreConsole
                     pc.AddIceCandidate(candidate);
                 };
                 await signaler.StartAsync();
-
                 // Start peer connection
                 pc.Connected += () => { Console.WriteLine("PeerConnection: connected."); };
                 pc.IceStateChanged += (IceConnectionState newState) => { Console.WriteLine($"ICE state: {newState}"); };
@@ -123,6 +128,14 @@ namespace TestNetCoreConsole
                 Console.WriteLine("Press a key to stop recording...");
                 Console.ReadKey(true);
 
+                Console.WriteLine("Removing data channels...");
+                foreach (var dataChannel in pc.DataChannels.ToImmutableArray())
+                {
+                    pc.RemoveDataChannel(dataChannel);
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(10));
+
                 signaler.Stop();
             }
             catch (Exception e)
@@ -135,10 +148,10 @@ namespace TestNetCoreConsole
 
             Console.WriteLine("Program termined.");
 
-            localAudioTrack.Dispose();
-            localVideoTrack.Dispose();
-            audioTrackSource.Dispose();
-            videoTrackSource.Dispose();
+            localAudioTrack?.Dispose();
+            localVideoTrack?.Dispose();
+            audioTrackSource?.Dispose();
+            videoTrackSource?.Dispose();
         }
     }
 }
